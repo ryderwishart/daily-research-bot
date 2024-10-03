@@ -146,3 +146,11 @@ If you encounter errors related to pgvector or vector operations, ensure that:
 3. The vector dimensions in your code match the dimensions in your database schema (1536 in this case).
 
 If you're still having issues, try manually casting the embedding to a vector in your queries:
+
+### Heroku Deployment Issues
+
+Make sure you have the right resource dyno, namely a `worker` type, not a `web` type.
+
+You might have to switch this on manually in the Heroku dashboard:
+
+![Heroku Dyno Settings](./heroku-dyno-settings.png)

@@ -15,9 +15,6 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import ast  # Add this import at the top of the file
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 # Download necessary NLTK data (you may need to run this once)
 nltk.download('punkt')
@@ -41,20 +38,14 @@ global recent_messages
 openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Connect to your PostgreSQL database
-try:
-    logging.info(f"Attempting to connect to database: {os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_DATABASE')}")
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'),
-        dbname=os.getenv('DB_DATABASE'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        port=os.getenv('DB_PORT')
-    )
-    logging.info("Successfully connected to the database")
-    cur = conn.cursor()
-except Exception as e:
-    logging.error(f"Failed to connect to the database: {e}")
-    raise
+conn = psycopg2.connect(
+    host=os.getenv('DB_HOST'),
+    dbname=os.getenv('DB_DATABASE'),
+    user=os.getenv('DB_USER'),
+    password=os.getenv('DB_PASSWORD'),
+    port=os.getenv('DB_PORT')
+)
+cur = conn.cursor()
 
 # Create a new Discord client
 intents = discord.Intents.default()
@@ -309,15 +300,28 @@ async def on_message(message):
 
     if discord_client.user in message.mentions:
         if any(keyword in user_message for keyword in ["summarize", "papers", "recent research"]):
-            await message.channel.send("Certainly! I'm checking the most recent papers. This might take a moment...")
+            initial_response = await message.channel.send("Certainly! I'm checking the most recent papers. This might take a moment...")
             try:
                 recent_papers = await get_recent_papers()
                 if not recent_papers:
                     await message.channel.send("I couldn't find any recent papers to summarize.")
                     return
 
+                # Create a thread for the summaries
+                thread = await initial_response.create_thread(name="Paper Summaries", auto_archive_duration=60)
+
+                overall_summary = None
                 async for summary in summarize_papers_in_batches(recent_papers):
-                    await message.channel.send(summary)
+                    if summary.startswith("Overall Summary:"):
+                        overall_summary = summary
+                    else:
+                        await thread.send(summary)
+
+                # Send the overall summary as a new top-level message
+                if overall_summary:
+                    await message.channel.send(overall_summary)
+                else:
+                    await message.channel.send("Summary process completed, but no overall summary was generated.")
 
             except Exception as e:
                 print(f"Error summarizing papers: {e}")

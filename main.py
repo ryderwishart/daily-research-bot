@@ -15,6 +15,9 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import ast  # Add this import at the top of the file
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # Download necessary NLTK data (you may need to run this once)
 nltk.download('punkt')
@@ -38,14 +41,20 @@ global recent_messages
 openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Connect to your PostgreSQL database
-conn = psycopg2.connect(
-    host=os.getenv('DB_HOST'),
-    dbname=os.getenv('DB_DATABASE'),
-    user=os.getenv('DB_USER'),
-    password=os.getenv('DB_PASSWORD'),
-    port=os.getenv('DB_PORT')
-)
-cur = conn.cursor()
+try:
+    logging.info(f"Attempting to connect to database: {os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_DATABASE')}")
+    conn = psycopg2.connect(
+        host=os.getenv('DB_HOST'),
+        dbname=os.getenv('DB_DATABASE'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        port=os.getenv('DB_PORT')
+    )
+    logging.info("Successfully connected to the database")
+    cur = conn.cursor()
+except Exception as e:
+    logging.error(f"Failed to connect to the database: {e}")
+    raise
 
 # Create a new Discord client
 intents = discord.Intents.default()

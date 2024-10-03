@@ -70,24 +70,22 @@ def get_markdown_content(url):
         return None
 
 async def get_huggingface_papers():
-    url = "https://huggingface.co/papers"
-    markdown_content = get_markdown_content(url)
-    if markdown_content is None:
-        print("Failed to retrieve markdown content.")
-        return []
-    papers = []
-    lines = markdown_content.split('\n')
-    for idx, line in enumerate(lines):
-        # Look for lines starting with '### [' and extract the title and link
-        match = re.match(r'^### \[(.*?)\]\((.*?)\)', line)
-        if match:
-            title = match.group(1)
-            link = match.group(2)
-            # Clean up the link if necessary
-            if not link.startswith('https://'):
-                link = 'https://huggingface.co' + link
+    url = "https://huggingface.co/api/daily_papers"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        data = response.json()
+        
+        papers = []
+        for paper in data:
+            title = paper['paper']['title']
+            link = f"https://huggingface.co/papers/{paper['paper']['id']}"
             papers.append({'title': title, 'link': link})
-    return papers
+        
+        return papers
+    except requests.RequestException as e:
+        print(f"Error fetching papers from Hugging Face API: {e}")
+        return []
 
 async def get_elvissaravia_papers():
     url = "https://nlp.elvissaravia.com/p/top-ml-papers-of-the-week-fbc"
@@ -240,7 +238,7 @@ async def call_openai_api(user_message, user_role, context_messages=None):
     if context_messages:
         context_texts = [f"Title: {msg['title']}\nSnippet: {msg['snippet']}\nLink: {msg['link']}" for msg in context_messages]
         context_combined = "\n\n".join(context_texts)
-        messages.append({"role": "system", "content": f"Here are some related papers. Mention them in your response if they are relevant:\n{context_combined}"})
+        messages.append({"role": "system", "content": f"Here are some related papers. Mention them in your response if they are relevant, and if you do then be sure to make the title of the paper a link to the paper:\n{context_combined}"})
     messages.extend(recent_messages)
     messages.append({'role': user_role, 'content': user_message})
 
@@ -279,7 +277,7 @@ async def summarize_papers_in_batches(papers, batch_size=3):
 
     for i, batch in enumerate(batches, 1):
         papers_text = "\n\n".join([f"Title: {paper[0]}\nLink: {paper[2]}" for paper in batch])
-        prompt = f"Please provide a concise summary of the following {len(batch)} recent papers in one paragraph, focusing on their key findings and potential applications to low-resource language translation tasks:\n\n{papers_text}"
+        prompt = f"Please provide a concise summary of the following {len(batch)} recent papers in one paragraph, focusing on their key findings and potential applications to low-resource language translation tasks. Remember to make the title of the paper a link to the paper:\n\n{papers_text}"
 
         response = await call_openai_api(prompt, "system")
         all_summaries.append(response)
@@ -308,7 +306,7 @@ async def on_message(message):
                     return
 
                 # Create a thread for the summaries
-                thread = await initial_response.create_thread(name="Paper Summaries", auto_archive_duration=60)
+                thread = await initial_response.create_thread(name="Paper Summaries with links", auto_archive_duration=60)
 
                 overall_summary = None
                 async for summary in summarize_papers_in_batches(recent_papers):

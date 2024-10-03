@@ -15,6 +15,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import ast  # Add this import at the top of the file
+import io  # Add this import
 
 # Download necessary NLTK data (you may need to run this once)
 nltk.download('punkt')
@@ -287,6 +288,24 @@ async def summarize_papers_in_batches(papers, batch_size=3):
     overall_summary = await call_openai_api(overall_summary_prompt, "system")
     yield f"Overall Summary:\n{overall_summary}"
 
+# Add this new function after the existing imports
+async def generate_audio(text):
+    try:
+        response = await asyncio.to_thread(
+            lambda: openai_client.audio.speech.create(
+                model="tts-1",
+                voice="alloy",
+                input=text
+            )
+        )
+        return io.BytesIO(response.content)
+    except Exception as e:
+        print(f"Error generating audio: {e}")
+        # Log the full traceback for debugging
+        print(f"Full traceback: {traceback.format_exc()}")
+        # Raise the exception to be handled by the caller
+        raise
+
 @discord_client.event
 async def on_message(message):
     global recent_messages
@@ -317,7 +336,15 @@ async def on_message(message):
 
                 # Send the overall summary as a new top-level message
                 if overall_summary:
-                    await message.channel.send(overall_summary)
+                    await thread.send(overall_summary)
+                    await message.channel.send("Generating a voice message for the summary...")
+                    
+                    # Generate and send voice message
+                    audio_file = await generate_audio(overall_summary)
+                    if audio_file:
+                        await message.channel.send(file=discord.File(audio_file, filename="summary.mp3"))
+                    else:
+                        await message.channel.send("I couldn't generate a voice message for the summary.")
                 else:
                     await message.channel.send("Summary process completed, but no overall summary was generated.")
 

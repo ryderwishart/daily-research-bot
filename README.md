@@ -1,5 +1,9 @@
 # Daily Research Bot
 
+> [!NOTE]
+> 🎉🔥 Now with audio summaries powered by OpenAI's Whisper! Get your research highlights in both text and voice format for an enhanced experience! 🎧📚
+> ![Now with audio summaries](./audio-summary.png)
+
 Daily Research Bot is an AI-powered Discord bot that helps you stay on top of new AI-related research, with a focus on low-resource language translation tasks. It summarizes recent papers from sources like Hugging Face and Elvis Saravia's blog, providing concise insights and potential applications.
 
 ## Features
@@ -9,6 +13,8 @@ Daily Research Bot is an AI-powered Discord bot that helps you stay on top of ne
 - Supports interactive querying of paper summaries
 - Uses long-term memory (PostgreSQL with pgvector) for efficient similarity search
 - Customizable system prompt for tailored responses
+- Generates audio summaries using OpenAI's Whisper so you can just listen
+- Organizes summaries in Discord threads for cleaner server chat
 
 ## Setup
 
@@ -72,6 +78,8 @@ Daily Research Bot is an AI-powered Discord bot that helps you stay on top of ne
 ## Usage
 
 - Mention the bot in a Discord channel along with keywords "summarize", "papers", or "recent research" to get summaries of recent papers.
+- The bot will create a new thread for the summaries, keeping the main channel clean and organized.
+- An overall summary will be provided as text, followed by an audio version for easy listening.
 - Ask the bot any question, and it will provide context-aware responses based on the stored paper summaries.
 
 ## Customization
@@ -126,7 +134,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Credits
 
-- [OpenAI](https://openai.com) for the embedding model.
+- [OpenAI](https://openai.com) for the embedding model and Whisper text-to-speech technology.
 - [pgvector](https://github.com/pgvector/pgvector) for the vector extension.
 - [Discord](https://discord.com) for the chat platform.
 - [Hugging Face](https://huggingface.co) for the AI research papers.

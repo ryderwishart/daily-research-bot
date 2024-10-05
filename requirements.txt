@@ -16,7 +16,7 @@ httpx==0.27.2
 idna==3.10
 joblib==1.4.2
 multidict==6.1.0
-nltk==3.9
+nltk==3.8.1
 numpy==2.1.1
 openai==1.32.1
 psycopg2-binary==2.9.9

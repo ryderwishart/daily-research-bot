@@ -16,6 +16,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import ast  # Add this import at the top of the file
 import io  # Add this import
+import traceback  # Add this import for error logging
 
 # Download necessary NLTK data (you may need to run this once)
 nltk.download('punkt')
@@ -289,22 +290,25 @@ async def summarize_papers_in_batches(papers, batch_size=3):
     yield f"Overall Summary:\n{overall_summary}"
 
 # Add this new function after the existing imports
-async def generate_audio(text):
-    try:
-        response = await asyncio.to_thread(
-            lambda: openai_client.audio.speech.create(
-                model="tts-1",
-                voice="alloy",
-                input=text
+async def generate_audio(text, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = await asyncio.to_thread(
+                lambda: openai_client.audio.speech.create(
+                    model="tts-1",
+                    voice="alloy",
+                    input=text
+                )
             )
-        )
-        return io.BytesIO(response.content)
-    except Exception as e:
-        print(f"Error generating audio: {e}")
-        # Log the full traceback for debugging
-        print(f"Full traceback: {traceback.format_exc()}")
-        # Raise the exception to be handled by the caller
-        raise
+            return io.BytesIO(response.content)
+        except Exception as e:
+            print(f"Error generating audio (attempt {attempt + 1}/{max_retries}): {e}")
+            print(f"Full traceback: {traceback.format_exc()}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(1)  # Wait for 1 second before retrying
+            else:
+                print("Max retries reached. Unable to generate audio.")
+                return None
 
 @discord_client.event
 async def on_message(message):
